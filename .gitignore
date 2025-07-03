@@ -1,0 +1,39 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+
+# Environnements et secrets
+.env
+.env.* 
+*.env
+*.local
+
+# Azure
+.azure/
+*.publishSettings
+
+# Logs
+logs
+*.log
+log.txt
+debug.log
+error.log
+
+# Mac / Windows
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Tests / Coverage
+coverage/
+*.lcov
+
+# Git
+.git/
