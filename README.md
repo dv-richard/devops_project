@@ -115,6 +115,8 @@ az monitor metrics alert create \
   --window-size 5m \
   --severity 0
 ```
+![Payment Failures](images/failures-critical.png)
+
 ### Alerte sur la performance
 ```bash
 az monitor metrics alert create \
@@ -127,6 +129,7 @@ az monitor metrics alert create \
   --window-size 5m \
   --severity 2
 ```
+[Payment Response](images/reponse-time.png)
 
 ## Variables d'environnement 
 
@@ -153,6 +156,8 @@ CREATE TABLE Payments (
 
 CREATE INDEX IX_Payments_MerchantId_CreatedAt ON Payments(MerchantId, CreatedAt);
 ```
+![Table Create](images/table-created.png)
+
 ## Préparation du package de déploiement (ZIP) et déploiement sur Azure
 
 ### Préparation du projet
@@ -203,6 +208,8 @@ az webapp deploy `
   et
   ```https://techmart-payments-rda.azurewebsites.net/api/payments```
 
+![Connected](images/health-connected.png)
+
 ## 🛠️ Tests & Simulation de Charge
 ```bash
 for i in {1..50}; do
@@ -212,6 +219,11 @@ for i in {1..50}; do
 done
 wait
 ```
+![Payments Completed](images/payments-completed.png)
+
+![Live Metrics](images/live-metrics.png)
+
+![App Insights](images/app-insight-views.png)
 
 ## 🛡️ Nettoyage
 ```bash
@@ -232,7 +244,41 @@ az group delete --name rg-techmart-lab --yes --no-wait
 ### Réflexion stratégique
 
 1. Architecture - Composant que j'ajouterais pour une montée en charge x10 :
-  - 
+  - Passer sur un App Service Plan Premium (P1V2/P2V2) ou ou utiliser Azure Kubernetes Service (AKS) pour scaler horizontalement".
+
+2. Les métriques manquantes :
+  - Nombre de transactions commerçant (suivit par `merchantId`).
+  - Suivi des tentatives de fraude ou comportements suspects.
+
+3. Protéger davantage cette API :
+  - Mettre en plac une API Management Gateway avec authentification (OAuth2).
+  - Utiliser Azure Key Vault + Managed Identity pour les secrets au lieu des App Settings.
+
+4. Optimiser le budget mensuel :
+  - Activer la mise en en veille automatique pour les environnements de test.
+  - Mettre des alertes budgétaires Azure Cost Management pour surveiller les dépassements.
+
+5. Gérer une panne de la base de données : 
+  - Implémenter un cache Redis plus stratétique pour permettre le fonctionnement dégradé en cas d'indisponibilité temporaire de la base.
+  - Activer la géoréplication sur Azure SQL pour avoir un failover automatique.
+
+### Qu'ai-je appris de nouveau
+
+J'ai appris à mettre en place une infrastructure cloud complète sur Azure, à sécuriser et surveiller une API en production avec Application Insights et Azure Monitor. J'ai aussi découvert l'importance des pare-feu SQL et des alertes métiers.
+
+### Difficultés rencontrées
+
+Les principale difficultés rencontrées :
+  - Les erreurs liées au pare-feu Azure SQL empêchant l'accès depuis l'App Service.
+  - Le déploiement Node.js en ZIP qui nécessitait des ajustement (`.deployment`, gestion des modules).
+
+### Appliquer cela dans un projet réel
+
+1. Mettre en place en pipeline CI/CD automatisé pour industrialiser les déploiements.
+
+2. Utiliser Azure Key Vault dès le départ pour ne jamais exposer les secret en clair.
+
+3. Mettre en place des tests de montée en charge plus poussés et une surveillance proactive des indicateurs métier.
 
 ## 📌 Auteurs
 Richard DEVA Cloud DevOps
