@@ -1,0 +1,20 @@
+{
+  "name": "techmart-payments-api",
+  "version": "1.0.0",
+  "description": "API de paiement sécurisée avec Azure SQL, Redis et Application Insights",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "TonNom",
+  "license": "ISC",
+  "dependencies": {
+    "applicationinsights": "^2.3.5",
+    "dotenv": "^17.0.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.7.0",
+    "helmet": "^7.0.0",
+    "mssql": "^10.0.1",
+    "redis": "^4.6.7"
+  }
+}

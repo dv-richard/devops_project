@@ -103,7 +103,7 @@ az monitor app-insights component create \
   --application-type web
 ```
 
-### Alertes critiques
+### Alertes sur les erreurs de paiement
 ```bash
 az monitor metrics alert create \
   --name "Payment Failures Critical" \
@@ -115,6 +115,93 @@ az monitor metrics alert create \
   --window-size 5m \
   --severity 0
 ```
+### Alerte sur la performance
+```bash
+az monitor metrics alert create \
+  --name "Payment Response Time" \
+  --resource-group rg-techmart-lab-rda \
+  --scopes /subscriptions/<subscription-id>/resourceGroups/rg-techmart-lab-rda/providers/Microsoft.Insights/components/techmart-insights \
+  --condition "avg requests/duration > 2000" \
+  --description "Temps de réponse des paiements > 2s" \
+  --evaluation-frequency 1m \
+  --window-size 5m \
+  --severity 2
+```
+
+## Variables d'environnement 
+
+```bash
+DB_USER
+DB_PASSWORD
+DB_NAME
+DB_SERVER
+REDIS_HOST
+REDIS_PASSWORD
+APPINSIGHTS_INSTRUMENTATIONKEY
+```
+
+## Création de la table SQL : 
+```bash
+CREATE TABLE Payments (
+    PaymentId int IDENTITY(1,1) PRIMARY KEY,
+    Amount decimal(10,2) NOT NULL,
+    Currency nvarchar(3) NOT NULL,
+    MerchantId nvarchar(50) NOT NULL,
+    Status nvarchar(20) NOT NULL,
+    CreatedAt datetime2 NOT NULL DEFAULT GETDATE()
+);
+
+CREATE INDEX IX_Payments_MerchantId_CreatedAt ON Payments(MerchantId, CreatedAt);
+```
+## Préparation du package de déploiement (ZIP) et déploiement sur Azure
+
+### Préparation du projet
+
+1. Assurez-vous d'avoir dans votre dossier projet : 
+```bash
+index.js
+package.json
+.deployment
+```
+2. Le fichier `.deployment` contient :
+```bash
+[config]
+SCM_DO_BUILD_DURING_DEPLOYMENT=true
+```
+3. Ne pas inclure : 
+  - `.env` (les variables sont configurées dans Azure App Service)
+  - `node_modules` (Azure les installera automatiquement)
+
+### Génération du fichier ZIP
+
+1. Dans votre terminal local :
+```bash
+npm install --production
+zip -r app.zip index.js package.json .deployment
+```
+2. Le fichier ZIP doit contenir uniquement : 
+```bash
+index.js
+package.json
+.deployment
+```
+
+### Déploiement du ZIP sur Azure
+
+1. Dans PowerShell Windows (⚠️Pas WSL Ni Cloud Shell⚠️):
+```bash
+az login
+az webapp deploy `
+  --resource-group rg-techmart-lab-rda `
+  --name techmart-payments-rda `
+  --src-path "C:\Users\utilisateur\Desktop\VOTRECHEMIN\app.zip"
+```
+2. Résultat attendu :
+  - L'application est déployé avec succès.
+  - Vous pouvez accéder à :
+  ```https://techmart-payments-rda.azurewebsites.net/health```
+  et
+  ```https://techmart-payments-rda.azurewebsites.net/api/payments```
 
 ## 🛠️ Tests & Simulation de Charge
 ```bash
@@ -130,7 +217,22 @@ wait
 ```bash
 az group delete --name rg-techmart-lab --yes --no-wait
 ```
+## Session Débrief
 
----
+### Exercice d'Observation
 
-🔧 Ce README peut être enrichi avec des parties CI/CD si besoin. Dis-moi si tu veux que je le génère aussi !
+1. Dans les métriques Application Insights et Azure Monitor, on observe que : 
+  - Les appels `/health` sont réguliers grâce à la sonde d’intégrité d’Azure (fréquence stable).
+  -  Les appels `/api/payments` génèrent des événements et des métriques de performance (durée d’exécution, nombre de succès).
+
+2. Les pattern qui émergent :
+  - Un comportement prévisible et linéaire sous faible charge.
+  - Des points de rupture poteniels qui pourraient apparaître sous une charge beaucoup plus élevée.
+
+### Réflexion stratégique
+
+1. Architecture - Composant que j'ajouterais pour une montée en charge x10 :
+  - 
+
+## 📌 Auteurs
+Richard DEVA Cloud DevOps

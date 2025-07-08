@@ -1,3 +1,6 @@
+// Import des variables d'environnement
+require('dotenv').config();
+
 // Import des modules
 const express = require('express');
 const sql = require('mssql');
@@ -6,24 +9,23 @@ const appInsights = require('applicationinsights');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
-// Initialisation Application Insights
-appInsights.setup();
-appInsights.start();
+// Initialisation Application Insights avec clé d'instrumentation
+appInsights.setup(process.env.APPINSIGHTS_INSTRUMENTATIONKEY).start();
 const client = appInsights.defaultClient;
 
 // Création de l'application Express
 const app = express();
-app.use(helmet()); // Sécurité HTTP
+app.use(helmet());
 app.use(express.json({ limit: '10mb' }));
 
 // Rate Limiting sur l'API de paiement
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // max requêtes par IP
+  max: 100
 });
 app.use('/api/', limiter);
 
-// Configuration SQL sécurisée (via variables d'environnement)
+// Configuration SQL sécurisée
 const config = {
   sql: {
     user: process.env.DB_USER,
@@ -42,7 +44,25 @@ const config = {
   }
 };
 
-// Endpoint /health : vérification SQL & Redis
+// Création du client Redis global
+const redisClient = redis.createClient({
+  socket: {
+    host: process.env.REDIS_HOST,
+    port: 6380,
+    tls: true
+  },
+  password: process.env.REDIS_PASSWORD
+});
+
+redisClient.connect().catch(console.error);
+
+// Gestion des erreurs Redis (optionnel mais recommandé)
+redisClient.on('error', (err) => {
+  console.error('Redis Error:', err);
+  client.trackException({ exception: err });
+});
+
+// Endpoint /health
 app.get('/health', async (req, res) => {
   const healthCheck = {
     uptime: process.uptime(),
@@ -51,26 +71,12 @@ app.get('/health', async (req, res) => {
   };
 
   try {
-    // Test SQL
     const pool = await sql.connect(config.sql);
     await pool.request().query('SELECT 1');
     healthCheck.database = 'Connected';
 
-    // Test Redis
-    const redisClient = redis.createClient({
-      socket: {
-        host: process.env.REDIS_HOST,
-        port: 6380,
-        tls: true
-      },
-      password: process.env.REDIS_PASSWORD
-    });
-
-    await redisClient.connect();
     await redisClient.ping();
     healthCheck.cache = 'Connected';
-
-    await redisClient.quit();
 
     res.status(200).json(healthCheck);
   } catch (error) {
@@ -84,19 +90,17 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Endpoint POST /api/payments
+// Endpoint /api/payments
 app.post('/api/payments', async (req, res) => {
   const startTime = Date.now();
   const { amount, currency, merchantId } = req.body;
 
   try {
-    // Log de transaction
     client.trackEvent({
       name: 'PaymentInitiated',
       properties: { merchantId, currency, amount: amount.toString() }
     });
 
-    // Insertion SQL
     const pool = await sql.connect(config.sql);
     const result = await pool.request()
       .input('amount', sql.Decimal(10, 2), amount)
@@ -110,7 +114,6 @@ app.post('/api/payments', async (req, res) => {
 
     const paymentId = result.recordset[0].PaymentId;
 
-    // Métriques de performance
     const duration = Date.now() - startTime;
     client.trackMetric({ name: 'PaymentProcessing.Duration', value: duration });
     client.trackMetric({ name: 'PaymentProcessing.Success', value: 1 });
