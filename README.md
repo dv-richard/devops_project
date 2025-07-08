@@ -19,24 +19,26 @@ Mettre en place une infrastructure Azure robuste pour une API de paiement avec m
 [ Azure Monitor (Alertes) ]
 ```
 
+![Architecture](images/Architecture.png)
+
 ## 📈 Choix techniques et justification
 
 ### Pourquoi choisir **Azure SQL niveau S0** ?
-- 💲 **Coût optimisé** : Idéal pour un usage startup avec charges modérées.
-- 🔄 **Montée en charge facile** : Possibilité d'évoluer vers S1/S2 ou vCore.
-- 🔢 **Haute disponibilité native (99,99%)**.
-- 🔹 Utilisation pour environnements **DEV, TEST** ou faible volumétrie.
+-  **Coût optimisé** : Idéal pour un usage startup avec charges modérées.
+-  **Montée en charge facile** : Possibilité d'évoluer vers S1/S2 ou vCore.
+-  **Haute disponibilité native (99,99%)**.
+-  Utilisation pour environnements **DEV, TEST** ou faible volumétrie.
 
 ### Quand migrer vers un niveau supérieur ?
-- 🔹 Volume de données important (plusieurs millions d'enregistrements)
-- 🔹 Temps de réponse insuffisant
-- 🔹 Pic de charge ou augmentation du trafic
-- 🔹 Besoins en réplication géographique ou résilience accrue
+-  Volume de données important (plusieurs millions d'enregistrements)
+-  Temps de réponse insuffisant
+-  Pic de charge ou augmentation du trafic
+-  Besoins en réplication géographique ou résilience accrue
 
 ### Pourquoi utiliser **Redis Cache** ?
-- 💡 Accélérer les temps de réponse
-- 💲 Décharger la base de données principale
-- 🔑 Gestion des sessions utilisateurs, files d'attente, cache temporaire
+-  Accélérer les temps de réponse
+-  Décharger la base de données principale
+-  Gestion des sessions utilisateurs, files d'attente, cache temporaire
 
 ### Quand Redis est-il indispensable ?
 | Cas d'usage                               | Redis ? |
@@ -50,7 +52,7 @@ Mettre en place une infrastructure Azure robuste pour une API de paiement avec m
 
 ### Groupe de ressource
 ```bash
-az group create --name rg-techmart-lab --location "West Europe"
+az group create --name rg-techmart-lab --location "France Central"
 ```
 
 ### Serveur SQL + Base de données
@@ -58,7 +60,7 @@ az group create --name rg-techmart-lab --location "West Europe"
 az sql server create \
   --name techmart-sql-$(whoami) \
   --resource-group rg-techmart-lab \
-  --location "West Europe" \
+  --location "France Central" \
   --admin-user techmartadmin \
   --admin-password "DevOps@2024!"
 
@@ -74,7 +76,7 @@ az sql db create \
 az redis create \
   --name techmart-cache-$(whoami) \
   --resource-group rg-techmart-lab \
-  --location "West Europe" \
+  --location "France Central" \
   --sku Basic \
   --vm-size c0
 ```
@@ -98,7 +100,7 @@ az webapp create \
 ```bash
 az monitor app-insights component create \
   --app techmart-insights \
-  --location "West Europe" \
+  --location "France Central" \
   --resource-group rg-techmart-lab \
   --application-type web
 ```
