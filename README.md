@@ -139,6 +139,8 @@ az monitor metrics alert create \
 
 ![Verification d'intégrité](images/verify-integrity.png)
 
+![Intégrité Active](images/verify-integrity-activated.png)
+
 2. Dans la configuration de l'App, bien penser à tout activer sauf : 
   - Proxy d’affinité de session
   - HTTPS uniquement
