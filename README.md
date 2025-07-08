@@ -133,6 +133,23 @@ az monitor metrics alert create \
 ```
 [Payment Response](images/reponse-time.png)
 
+### Activation paramètres
+
+1. Activer la vérification de l'intégrité 
+
+![Verification d'intégrité](images/verify-integrity.png)
+
+2. Dans la configuration de l'App, bien penser à tout activer sauf : 
+  - Proxy d’affinité de session
+  - HTTPS uniquement
+  - Débogage distant
+
+3. Server SQL > Sécurité > Mise en réseau :
+  - Ajout de règle pour autoriser l'adresse IP
+  - Cocher `Autoriser les services et les ressources Azure à accéder à ce serveur`
+
+![IP Autorisation](images/ip-autorisation.png)
+
 ## Variables d'environnement 
 
 ```bash
@@ -144,6 +161,8 @@ REDIS_HOST
 REDIS_PASSWORD
 APPINSIGHTS_INSTRUMENTATIONKEY
 ```
+
+![Variables d'environnements](images/variables-environments.png)
 
 ## Création de la table SQL : 
 ```bash
