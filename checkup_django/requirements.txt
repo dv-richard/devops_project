@@ -1,0 +1,13 @@
+Django==5.0.2
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+python-dotenv==1.0.1
+djangorestframework-simplejwt==5.3.1 
+djangorestframework-filters==1.0.0.dev2
+daphne==4.1.2
+mozilla-django-oidc
+djangosaml2
+django-authlib==0.17.2
+oauthlib==3.3.1
+requests-oauthlib==2.0.0
+django-simple-history==3.10.1

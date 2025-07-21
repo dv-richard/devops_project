@@ -1,0 +1,57 @@
+{# templates/checklist/historique_checklists.html #}
+{% extends "checklist/base.html" %}
+{% block title %}Historique Checklists{% endblock %}
+{% block content %}
+
+<div class="mt-4 mb-4 d-flex justify-content-between align-items-center">
+  <h2 class="h4 mb-0"><span class="me-2">📜</span>Historique</h2>
+</div>
+
+<form method="get" class="row g-2 mb-4">
+  <div class="col-auto">
+    <label for="start" class="form-label small">Du</label>
+    <input type="date" id="start" name="start" class="form-control form-control-sm" value="{{ start }}">
+  </div>
+  <div class="col-auto">
+    <label for="end" class="form-label small">Au</label>
+    <input type="date" id="end" name="end" class="form-control form-control-sm" value="{{ end }}">
+  </div>
+  <div class="col-auto align-self-end">
+    <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+  </div>
+</form>
+
+{% if checklists %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th class="text-center" style="color: var(--clr-danger)">🔍 À vérifier</th>
+          <th class="text-center">✅ OK</th>
+          <th class="text-center">❌ KO</th>
+          <th class="text-center">🔄 En cours</th>
+          <th class="text-center" style="color: #000">Détail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in checklists %}
+        <tr>
+          <td>{{ c.date|date:"d/m/Y" }}</td>
+          <td class="text-center">{{ c.total_av }}</td>
+          <td class="text-center">{{ c.total_ok }}</td>
+          <td class="text-center">{{ c.total_ko }}</td>
+          <td class="text-center">{{ c.total_ec }}</td>
+          <td class="text-center">
+            <a href="{% url 'checklist_detail' c.date %}" class="btn-detail">Voir</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-warning mt-3">Aucune checklist enregistrée.</div>
+{% endif %}
+
+{% endblock %}

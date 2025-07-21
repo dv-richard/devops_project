@@ -1,0 +1,432 @@
+/* =========================================
+   1) VARIABLES CSS (THÈME CLAIR HIGH-TECH)
+   ========================================= */
+
+:root {
+  /* Couleurs principales – THÈME CLAIR */
+  --clr-primary: #0d6efd;         /* Bleu vif pour accents */
+  --clr-secondary: #6c757d;       /* Gris neutre pour textes secondaires */
+  --clr-bg: rgba(255, 255, 255, 0.85);     /* Fond global semi-transparent clair */
+  --clr-card-bg: rgba(255, 255, 255, 0.6); /* Fond translucide pour cartes */
+  --clr-card-border: rgba(0, 0, 0, 0.1);   /* Bordure très claire */
+  --clr-text: #212529;            /* Texte principal sombre */
+  --clr-text-secondary: #495057;  /* Texte secondaire foncé */
+  --clr-accent: #0d6efd;          /* Accent bleu pour boutons/hover */
+  --clr-danger: #d63384;          /* Rose vif pour “À vérifier” */
+  --clr-success: #23d160;         /* Vert vif pour “OK” */
+  --clr-warning: #ffc107;         /* Jaune pour “En cours” */
+  --clr-hover: rgba(13, 110, 253, 0.1); /* Survol léger bleu */
+  --radius: 0.75rem;              /* Rayon d’arrondi global */
+  --transition: 0.25s ease;       /* Transition douce */
+  font-size: 16px;
+}
+
+
+/* =========================================
+   2) RÉINITIALISATION & BASES (THÈME CLAIR)
+   ========================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+  color: var(--clr-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Titres */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--clr-text);
+  font-weight: 500;
+}
+
+/* Liens par défaut : pas de soulignement */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Conteneur principal centré */
+.main-container {
+  max-width: 900px;
+  margin: 80px auto 40px auto; /* Laisse de la place pour la navbar fixe */
+  padding: 0 20px;
+}
+
+
+/* =========================================
+   3) NAVBAR « COMPACTE HIGH-TECH (CLAIR) »
+   ========================================= */
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid var(--clr-card-border);
+  backdrop-filter: saturate(180%) blur(10px);
+  z-index: 1000;
+  padding-top: 0.25rem;   /* Padding vertical réduit pour compacter */
+  padding-bottom: 0.25rem;
+}
+
+.navbar .navbar-brand {
+  font-size: 1.4rem;
+  color: var(--clr-accent);
+  font-weight: 600;
+  transition: color var(--transition);
+}
+
+.navbar .navbar-brand:hover {
+  color: var(--clr-primary);
+}
+
+/* Boutons « Nouvelle » & « Historique » (outline bleu) */
+.btn-nav {
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 2px solid var(--clr-accent);
+  background: transparent;
+  color: var(--clr-accent);
+  padding: 0.3rem 0.9rem;
+  margin-left: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: color var(--transition);
+}
+.btn-nav:hover {
+  color: var(--clr-bg);
+}
+.btn-nav::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: var(--clr-accent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width var(--transition), height var(--transition);
+  z-index: -1;
+}
+.btn-nav:hover::before {
+  width: 200%;
+  height: 400%;
+}
+
+/* Icône toggler invisible/utilisé si nécessaire */
+.navbar-toggler {
+  border: none;
+}
+.navbar-toggler-icon {
+  filter: invert(0.2); /* Icône plus sombre sur fond clair */
+}
+
+
+/* =========================================
+   4) FORMULAIRES « CHECKLIST TODAY » (CLAIR)
+   ========================================= */
+
+.form-checklist {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius);
+  border: 1px solid var(--clr-card-border);
+  padding: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Titre principal souligné néon */
+.page-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.4rem;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.3rem;
+}
+.page-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--clr-accent);
+  border-radius: 2px;
+}
+
+/* Sous-titre discret */
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--clr-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+/* Champ « Vérifié par » */
+#verifie_par {
+  width: 100%;
+  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--clr-text);
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  transition: background var(--transition);
+  margin-bottom: 2rem;
+}
+#verifie_par::placeholder {
+  color: var(--clr-text-secondary);
+}
+#verifie_par:focus {
+  background: rgba(255, 255, 255, 0.7);
+  outline: none;
+}
+
+/* Titre de section simple (sans accordéon) */
+.section-title {
+  font-size: 1.25rem;
+  color: var(--clr-accent);
+  margin-bottom: 1rem;
+  position: relative;
+}
+.section-title::before {
+  content: '▸';
+  margin-right: 0.5rem;
+  color: var(--clr-primary);
+}
+
+/* Grille responsive de tâches (2 colonnes sur desktop, 1 sur mobile) */
+.task-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Carte de tâche « high-tech » – THÈME CLAIR */
+.task-card {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--clr-card-border);
+  border-radius: var(--radius);
+  backdrop-filter: saturate(180%) blur(8px);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.task-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+}
+
+/* Titre de la tâche */
+.task-card .task-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--clr-text);
+}
+
+/* Sélecteur « Statut » – THÈME CLAIR */
+.task-card .form-select {
+  background: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-radius: var(--radius);
+  color: #000;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  transition: background var(--transition);
+}
+.task-card .form-select:focus {
+  background: rgba(255, 255, 255, 0.8);
+  outline: none;
+}
+
+/* Textarea « Commentaire » – THÈME CLAIR */
+.task-card .form-control {
+  background: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--clr-text);
+  padding: 0.5rem 0.75rem;
+  transition: background var(--transition);
+  resize: vertical;
+  min-height: 3.5rem;
+}
+.task-card .form-control:focus {
+  background: rgba(255, 255, 255, 0.8);
+  outline: none;
+}
+
+/* Bordure particulière si statut = “A_VERIFIER” */
+.task-card[data-statut="A_VERIFIER"] {
+  border-color: var(--clr-danger);
+}
+
+
+/* =========================================
+   5) BOUTON ENREGISTRER « HIGH-TECH » (CLAIR)
+   ========================================= */
+
+.sticky-footer {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.75rem 0;
+  box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.1);
+  z-index: 500;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, var(--clr-accent), var(--clr-primary));
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  width: 100%;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.btn-save:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+.btn-save:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+
+/* =========================================
+   6) TABLE HISTORIQUE & DÉTAIL (CLAIR)
+   ========================================= */
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--clr-card-border);
+  backdrop-filter: saturate(180%) blur(8px);
+}
+
+.table thead {
+  background: var(--clr-accent);
+}
+.table thead th {
+  color: #fff;
+  font-weight: 500;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.table tbody tr {
+  transition: background var(--transition);
+}
+.table tbody tr:nth-of-type(odd) {
+  background: rgba(0, 0, 0, 0.02);
+}
+.table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.table tbody td {
+  padding: 0.75rem;
+  color: var(--clr-text);
+  vertical-align: middle;
+}
+.table tbody td.text-center {
+  text-align: center !important;
+}
+
+/* Badges – THÈME CLAIR */
+.badge-av {
+  background: var(--clr-danger);
+  color: #fff;
+  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius);
+}
+.badge-ok {
+  background: var(--clr-success);
+  color: #fff;
+  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius);
+}
+.badge-ko {
+  background: var(--clr-danger);
+  color: #fff;
+  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius);
+}
+.badge-ec {
+  background: var(--clr-warning);
+  color: #212529;
+  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius);
+}
+
+/* Bouton « Voir » – THÈME CLAIR */
+.btn-detail {
+  background: transparent;
+  border: 2px solid var(--clr-accent);
+  color: var(--clr-text);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.875rem;
+  transition: background var(--transition), color var(--transition);
+}
+.btn-detail:hover {
+  background: var(--clr-accent);
+  color: var(--clr-bg);
+}
+
+
+/* =========================================
+   7) RESPONSIVE (MOBILE)
+   ========================================= */
+
+@media (max-width: 575.98px) {
+  .main-container {
+    margin: 60px auto 20px auto;
+    padding: 0 10px;
+  }
+  .task-grid {
+    grid-template-columns: 1fr;
+  }
+  .btn-nav {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.75rem;
+  }
+  .btn-save {
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+  }
+  .table thead th {
+    font-size: 0.85rem;
+    padding: 0.5rem;
+  }
+  .table tbody td {
+    font-size: 0.85rem;
+    padding: 0.5rem;
+  }
+}

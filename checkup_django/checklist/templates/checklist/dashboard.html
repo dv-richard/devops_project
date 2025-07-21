@@ -1,0 +1,68 @@
+{% extends "checklist/base.html" %}
+{% block title %}Dashboard statistique{% endblock %}
+{% block content %}
+
+<h2 class="mb-4">📊 Dashboard statistique</h2>
+
+{# --- Filtre de période --- #}
+<form method="get" class="row g-2 mb-4 align-items-end">
+  <div class="col-auto">
+    <label for="start" class="form-label small">Du</label>
+    <input type="date" id="start" name="start"
+           class="form-control form-control-sm"
+           value="{{ start }}">
+  </div>
+  <div class="col-auto">
+    <label for="end" class="form-label small">Au</label>
+    <input type="date" id="end" name="end"
+           class="form-control form-control-sm"
+           value="{{ end }}">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+  </div>
+  {# Si besoin d'un bouton "Réinitialiser" #}
+  <div class="col-auto">
+    <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-sm">Réinitialiser</a>
+  </div>
+</form>
+
+{# --- Moyennes globales --- #}
+<div class="d-flex justify-content-around mb-4">
+  <div>✅ OK : {{ avg_pct.ok }} %</div>
+  <div>❌ KO : {{ avg_pct.ko }} %</div>
+  <div>🔍 À vérifier : {{ avg_pct.av }} %</div>
+  <div>🔄 En cours : {{ avg_pct.ec }} %</div>
+</div>
+
+<canvas id="chart" style="max-height:400px;"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: {{ dates|safe }},
+      datasets: [
+        { label: 'OK (%)',       data: {{ ok|safe }}, borderColor: '#198754', fill: false },
+        { label: 'KO (%)',       data: {{ ko|safe }}, borderColor: '#dc3545', fill: false },
+        { label: 'À vérifier (%)',data: {{ av|safe }}, borderColor: '#6c757d', borderDash: [5,5], fill: false },
+        { label: 'En cours (%)',  data: {{ ec|safe }}, borderColor: '#ffc107', fill: false },
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { display: true, title: { display: true, text: 'Date' } },
+        y: { display: true, title: { display: true, text: 'Pourcentage (%)' }, min: 0, max: 100 }
+      },
+      plugins: {
+        tooltip: { mode: 'index', intersect: false },
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+</script>
+
+{% endblock %}

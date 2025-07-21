@@ -1,0 +1,48 @@
+version: "3.7"
+
+services:
+  app:
+    image: $CI_REGISTRY_IMAGE_DEVOPS/staging:$IMAGE_TAG
+    environment:
+      - SECRET_KEY=$SECRET_KEY
+    command: >
+      sh -c "python manage.py makemigrations --noinput &&
+            python manage.py migrate --noinput &&
+            daphne -b 0.0.0.0 -p 8000 mtpmetropole.asgi:application"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-net
+      # - traefik.http.middlewares.web-teletravail-108-staging-https-only.redirectscheme.scheme=https
+      # HTTP route
+      - traefik.http.routers.${STAGING_STACK_NAME}_app-http.entrypoints=http
+      - "traefik.http.routers.${STAGING_STACK_NAME}_app-http.rule=Host(`${STAGING_BASE_URL}`)"
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.referrerPolicy=no-referrer
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.stsPreload=true
+      # HTTPS route
+      - traefik.http.routers.${STAGING_STACK_NAME}_app.entrypoints=https
+      - "traefik.http.routers.${STAGING_STACK_NAME}_app.rule=Host(`${STAGING_BASE_URL}`)"
+      - traefik.http.routers.${STAGING_STACK_NAME}_app.tls=true
+      # Service
+      - traefik.http.services.${STAGING_STACK_NAME}_app.loadbalancer.server.port=8000
+      # Classic Docker labels
+      - track=stable
+      - app.gitlab.com/env=staging
+    volumes:
+      - sqlite_data:/app/db/
+    networks:
+      - traefik-net
+
+volumes:
+  sqlite_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /opt/docker/checkup_django/volumes/db
+      o: bind
+
+networks:
+  default:
+  traefik-net:
+    external: true

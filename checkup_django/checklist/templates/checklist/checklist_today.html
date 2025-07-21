@@ -1,0 +1,87 @@
+{% extends "checklist/base.html" %}
+{% block title %}Checklist du {{ date|date:"d/m/Y" }}{% endblock %}
+{% block content %}
+
+<div class="form-checklist">
+
+  {# Statistiques du jour #}
+  <div class="d-flex justify-content-around mb-4">
+    <div>✅ OK : {{ stats_pct.ok }} %</div>
+    <div>❌ KO : {{ stats_pct.ko }} %</div>
+    <div>🔍 À vérifier : {{ stats_pct.av }} %</div>
+    <div>🔄 En cours : {{ stats_pct.ec }} %</div>
+  </div>
+
+  {# Titre #}
+  <div class="text-center mb-4">
+    <h1 class="page-title mb-1">
+      <span class="me-2">🗓️</span>Checklist du
+      <time datetime="{{ date|date:'Y-m-d' }}">{{ date|date:"l j F Y" }}</time>
+    </h1>
+    <p class="page-subtitle">Vérifiez et complétez chaque tâche ci-dessous</p>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ management_form }}
+
+    {# Champ "Vérifié par" en lecture seule #}
+    <div class="mb-4">
+      <label class="form-label small text-secondary">Vérifié par</label>
+      <input type="text" id="verifie_par" name="verifie_par"
+             class="form-control-plaintext"
+             value="{{ verifie_par }}" readonly>
+    </div>
+
+    {# Boucle sur sections + forms_tpls #}
+    {% for section, forms_tpls in sections %}
+      <div class="mb-5">
+        <h2 class="section-title">{{ section.titre }}</h2>
+        <div class="task-grid">
+          {% for form, tpl in forms_tpls %}
+            {% with status=form.statut.value|default:"A_VERIFIER" %}
+            <div class="task-card" data-statut="{{ status }}">
+              {{ form.id }}{{ form.nom }}
+
+              <div class="d-flex align-items-center mb-2">
+                <h6 class="task-title mb-0">{{ form.initial.nom }}</h6>
+                {# Infobulle si description #}
+                {% if tpl.description %}
+                  <button type="button"
+                          class="btn btn-sm btn-outline-secondary ms-2 p-0"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top"
+                          title="{{ tpl.description|escape }}">
+                    ℹ️
+                  </button>
+                {% endif %}
+              </div>
+
+              <label class="form-label small text-secondary">Statut</label>
+              {{ form.statut }}
+
+              <label class="form-label small text-secondary mt-2">Commentaire</label>
+              {{ form.commentaire }}
+
+              {# Lien vers la doc si défini #}
+              {% if tpl.doc_url %}
+                <p class="mt-2 mb-0 small">
+                  <a href="{{ tpl.doc_url }}" target="_blank" class="link-primary">
+                    📖 Documentation complète
+                  </a>
+                </p>
+              {% endif %}
+            </div>
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+
+    <div class="sticky-footer">
+      <button type="submit" class="btn-save">✅ Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

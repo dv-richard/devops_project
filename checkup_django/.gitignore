@@ -1,0 +1,38 @@
+# .gitignore
+
+# Fichiers Python compilés
+*.pyc
+__pycache__/
+
+# Environnement virtuel
+venv/
+env/
+.venv/
+.env
+.env/
+
+# Base de données SQLite
+#db.sqlite3
+
+# Dossiers de migrations (si tu souhaites commiter uniquement les migrations manuellement, sinon ignore tout)
+*/migrations/__pycache__/
+*/migrations/*.pyc
+*/migrations/*.py  # si tu veux exclure les fichiers de migration ; sinon commente cette ligne
+
+# Fichiers de configuration locaux (VSCode, PyCharm…)
+.vscode/
+.idea/
+
+# Fichiers système
+*.swp
+*.swo
+.DS_Store
+
+# Média / fichiers uploadés
+media/
+
+# Logs
+*.log
+
+# Staticfiles générés (si tu utilises collectstatic)
+staticfiles/

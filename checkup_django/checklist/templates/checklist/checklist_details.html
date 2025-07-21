@@ -1,0 +1,106 @@
+{# templates/checklist/checklist_details.html #}
+{% extends "checklist/base.html" %}
+{% block title %}Détail Checklist {{ checklist.date|date:"d/m/Y" }}{% endblock %}
+{% block content %}
+
+  {# --- Navigation Précédent / Date / Suivant --- #}
+  <div class="mt-4 mb-2 d-flex justify-content-between align-items-center">
+    {% if prev_date %}
+      <a href="{% url 'checklist_detail' prev_date %}" class="btn-nav btn-sm">← Précédent</a>
+    {% else %}
+      <div class="btn-nav btn-sm invisible">← Précédent</div>
+    {% endif %}
+
+    <div class="text-center">
+      <strong>{{ checklist.date|date:"l j F Y" }}</strong>
+    </div>
+
+    {% if next_date %}
+      <a href="{% url 'checklist_detail' next_date %}" class="btn-nav btn-sm">Suivant →</a>
+    {% else %}
+      <div class="btn-nav btn-sm invisible">Suivant →</div>
+    {% endif %}
+  </div>
+
+  {# --- Filtre date vers l’historique --- #}
+  <form method="get" action="{% url 'historique_checklists' %}" class="row g-2 mb-4">
+    <div class="col-auto">
+      <label for="start" class="form-label small">Du</label>
+      <input type="date" id="start" name="start" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label for="end" class="form-label small">Au</label>
+      <input type="date" id="end" name="end" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto align-self-end">
+      <button type="submit" class="btn btn-primary btn-sm">Voir historique</button>
+    </div>
+  </form>
+
+  {% if checklist.items.exists %}
+    <div class="table-responsive mb-5">
+      <table class="table">
+        <thead class="table-primary">
+          <tr>
+            <th>Tâche</th>
+            <th>Statut</th>
+            <th>Commentaire</th>
+            <th>Vérifié par</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in checklist.items.all %}
+          <tr class="{% cycle 'bg-white' 'bg-light' %}">
+            <td>{{ item.nom }}</td>
+            <td>
+              {% if item.statut == "A_VERIFIER" %}
+                <span class="badge badge-av">🔍 À vérifier</span>
+              {% elif item.statut == "OK" %}
+                <span class="badge badge-ok">✅ OK</span>
+              {% elif item.statut == "KO" %}
+                <span class="badge badge-ko">❌ KO</span>
+              {% else %}
+                <span class="badge badge-ec">🔄 En cours</span>
+              {% endif %}
+            </td>
+            <td class="text-muted">{{ item.commentaire|default:"— Aucun commentaire" }}</td>
+            <td>{{ item.verifie_par|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# --- Historique détaillé par tâche --- #}
+    <h3 class="mb-3">Historique des modifications par tâche</h3>
+    {% for item in checklist.items.all %}
+      <div class="mb-4">
+        <h5 class="mb-2">{{ item.nom }}</h5>
+        {# Si plus qu’une entrée historique (initiale + au moins une modif) #}
+        {% if item.history.count > 1 %}
+          <ul class="list-group">
+            {# slice:"1:" permet de sauter la première entrée (la création) #}
+            {% for hist in item.history.all|slice:"1:" %}
+              <li class="list-group-item small">
+                {{ hist.history_date|date:"d/m/Y H:i" }}
+                {% if hist.history_user %}
+                  — {{ hist.history_user.get_full_name|default:hist.history_user.username }}
+                {% endif %}
+                : statut « {{ hist.statut }} »
+                {% if hist.commentaire %}
+                  | commentaire « {{ hist.commentaire }} »
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="small text-muted">Aucune modification enregistrée.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+  {% else %}
+    <div class="alert alert-info mt-3">Aucune tâche pour cette checklist.</div>
+  {% endif %}
+
+{% endblock %}

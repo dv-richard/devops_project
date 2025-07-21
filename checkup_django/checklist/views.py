@@ -1,0 +1,322 @@
+import os
+import json
+import requests
+from urllib.parse import urlencode
+
+from django.conf import settings
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from django.db.models import Count, Q
+from django.contrib.auth import get_user_model, login
+from django.contrib.auth.decorators import login_required
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.authtoken.models import Token
+
+from .models import Section, TaskTemplate, Checklist, CheckItem, is_external_user
+from .forms import CheckItemFormSet
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 1) DÉCLENCHEMENT DU FLUX OIDC
+# ──────────────────────────────────────────────────────────────────────────────
+
+def oidc_login(request):
+    state = request.session.setdefault('oidc_state', os.urandom(16).hex())
+    params = {
+        'response_type': 'code',
+        'client_id':     settings.OIDC_RP_CLIENT_ID,
+        'redirect_uri':  settings.OIDC_REDIRECT_URI,
+        'scope':         'openid profile email',
+        'state':         state,
+    }
+    url = settings.OIDC_AUTH_ENDPOINT + '?' + urlencode(params)
+    print('OIDC Login URL:', url)
+    return redirect(url)
+
+
+def oidc_callback(request):
+    code  = request.GET.get('code')
+    state = request.GET.get('state')
+    if not code or state != request.session.get('oidc_state'):
+        return redirect('checklist_today')
+
+    token_data = {
+        'grant_type':    'authorization_code',
+        'code':          code,
+        'redirect_uri':  settings.OIDC_REDIRECT_URI,
+        'client_id':     settings.OIDC_RP_CLIENT_ID,
+        'client_secret': settings.OIDC_RP_CLIENT_SECRET,
+    }
+    token_resp = requests.post(
+        settings.OIDC_TOKEN_ENDPOINT,
+        data=token_data,
+        verify=settings.OIDC_OP_SSL
+    )
+    token_resp.raise_for_status()
+    tokens = token_resp.json()
+    access_token = tokens.get('access_token')
+
+    # Création/récupération user + token DRF
+    api_resp = requests.post(
+        request.build_absolute_uri('/api/auth/oidc/'),
+        json={'token': access_token}
+    )
+    api_resp.raise_for_status()
+    payload = api_resp.json()
+    key = payload.get('key')
+
+    token_obj = Token.objects.filter(key=key).first()
+    if token_obj:
+        login(request, token_obj.user)
+
+    return redirect('checklist_today')
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 2) OIDCAuthView (pour apps JS / mobile)
+# ──────────────────────────────────────────────────────────────────────────────
+
+class OIDCAuthView(APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        token = request.data.get('token')
+        if not token:
+            return Response({'error': 'Token manquant'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_info = self.get_user_info(token)
+        if not user_info:
+            return Response({'error': 'Token invalide'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = self.get_or_create_user(user_info)
+        if not user:
+            return Response({'error': "Création utilisateur échouée"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        token_obj, _ = Token.objects.get_or_create(user=user)
+        return Response({
+            'key':          token_obj.key,
+            'id':           user.id,
+            'is_admin':     user.is_staff,
+            'username':     user.username,
+            'first_name':   user.first_name,
+            'last_name':    user.last_name,
+            'email':        user.email or None,
+            'is_external':  is_external_user(user),
+        }, status=status.HTTP_200_OK)
+
+    def get_user_info(self, token):
+        try:
+            resp = requests.get(
+                settings.OIDC_USERINFO_ENDPOINT,
+                headers={'Authorization': f'Bearer {token}'},
+                verify=settings.OIDC_OP_SSL
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException:
+            return None
+
+    def get_or_create_user(self, user_info):
+        User = get_user_model()
+        username   = user_info.get('preferred_username', '').lower()
+        email      = user_info.get('email', '')
+        first_name = user_info.get('given_name', '')
+        last_name  = user_info.get('family_name', '')
+
+        if not username:
+            return None
+
+        user = User.objects.filter(username__iexact=username).first()
+        if user:
+            user.first_name = first_name
+            user.last_name  = last_name
+            user.email      = email
+            user.save()
+        else:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name
+            )
+        return user
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 3) Checklist du jour
+# ──────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def checklist_today(request):
+    today = timezone.localdate()
+    checklist, _ = Checklist.objects.get_or_create(date=today, defaults={'verifie_par': ''})
+
+    # Synchronisation automatique
+    templates = TaskTemplate.objects.select_related('section').order_by('section__ordre', 'ordre')
+    existing  = set(checklist.items.values_list('nom', flat=True))
+    needed    = set(t.nom for t in templates)
+    if existing != needed:
+        checklist.items.all().delete()
+        for tmpl in templates:
+            CheckItem.objects.create(checklist=checklist, nom=tmpl.nom, statut='A_VERIFIER')
+
+    if request.method == 'POST':
+        formset = CheckItemFormSet(request.POST, instance=checklist)
+        verifie_par = request.POST.get('verifie_par','').strip()
+        if formset.is_valid():
+            checklist.verifie_par = verifie_par
+            checklist.save()
+            # On enregistre d'abord les items
+            instance = formset.save()
+
+            # Puis on marque chaque tâche modfiée par l'utilisateur courant
+            user_label = request.user.get_full_name() or request.user.username
+            for form in formset.forms:
+                if form.has_changed():
+                    # form.instance est le CheckItem correspondant
+                    item = form.instance
+                    item.verifie_par = user_label
+                    item.save(update_fields=['verifie_par'])
+
+            return redirect('historique_checklists')
+    else:
+        formset = CheckItemFormSet(instance=checklist)
+        # Toujours utiliser le nom de l'utilisateur connecté
+        full = request.user.get_full_name()
+        verifie_par = full if full else request.user.username
+
+    # Crée un lookup rapide nom -> template
+    tpl_map = {t.nom: t for t in templates}
+    sections = []
+    for section in Section.objects.all():
+        lst = []
+        for f in formset.forms:
+            nom = f.initial['nom']
+            tpl = tpl_map[nom]
+            if tpl.section_id == section.id:
+                lst.append((f, tpl))
+        if lst:
+            sections.append((section, lst))
+
+    # Statistiques journalières
+    stats = checklist.items.aggregate(
+        total=Count('id'),
+        ok   =Count('id', filter=Q(statut='OK')),
+        ko   =Count('id', filter=Q(statut='KO')),
+        av   =Count('id', filter=Q(statut='A_VERIFIER')),
+        ec   =Count('id', filter=Q(statut='EN_COURS')),
+    )
+    total = stats['total'] or 1
+    pct   = {k: round(stats[k]/total*100,1) for k in ('ok','ko','av','ec')}
+
+    return render(request, 'checklist/checklist_today.html', {
+        'sections':      sections,
+        'management_form': formset.management_form,
+        'date':          today,
+        'verifie_par':   verifie_par,
+        'stats_pct':     pct,
+    })
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 4) Historique & filtrage
+# ──────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def historique_checklists(request):
+    start = request.GET.get('start')
+    end   = request.GET.get('end')
+
+    qs = Checklist.objects.annotate(
+        total_av=Count('items', filter=Q(items__statut='A_VERIFIER')),
+        total_ok=Count('items', filter=Q(items__statut='OK')),
+        total_ko=Count('items', filter=Q(items__statut='KO')),
+        total_ec=Count('items', filter=Q(items__statut='EN_COURS')),
+    )
+    if start:
+        qs = qs.filter(date__gte=start)
+    if end:
+        qs = qs.filter(date__lte=end)
+    qs = qs.order_by('-date')
+
+    return render(request, 'checklist/historique_checklists.html', {
+        'checklists': qs,
+        'start':      start,
+        'end':        end,
+    })
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 5) Détail + navigation Prev/Next
+# ──────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def checklist_detail(request, date):
+    checklist = get_object_or_404(Checklist, date=date)
+    prev      = Checklist.objects.filter(date__lt=checklist.date).order_by('-date').first()
+    nxt       = Checklist.objects.filter(date__gt=checklist.date).order_by('date').first()
+
+    return render(request, 'checklist/checklist_details.html', {
+        'checklist': checklist,
+        'prev_date': prev.date if prev else None,
+        'next_date': nxt.date if nxt else None,
+    })
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 6) Dashboard statistique interactif
+# ──────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def dashboard(request):
+    # Récupération des filtres de date en GET
+    start = request.GET.get('start')
+    end   = request.GET.get('end')
+
+    # Nombre total de templates pour calcul %
+    total_templates = TaskTemplate.objects.count() or 1
+
+    # Queryset annoté
+    qs = Checklist.objects.annotate(
+        ok=Count('items', filter=Q(items__statut='OK')),
+        ko=Count('items', filter=Q(items__statut='KO')),
+        av=Count('items', filter=Q(items__statut='A_VERIFIER')),
+        ec=Count('items', filter=Q(items__statut='EN_COURS')),
+    )
+
+    # Application des filtres
+    if start:
+        qs = qs.filter(date__gte=start)
+    if end:
+        qs = qs.filter(date__lte=end)
+
+    qs = qs.order_by('date')
+
+    # Sérialisation des données
+    dates  = [c.date.strftime('%Y-%m-%d') for c in qs]
+    pct_ok = [round(c.ok/total_templates*100,1) for c in qs]
+    pct_ko = [round(c.ko/total_templates*100,1) for c in qs]
+    pct_av = [round(c.av/total_templates*100,1) for c in qs]
+    pct_ec = [round(c.ec/total_templates*100,1) for c in qs]
+
+    # Moyennes globales
+    avg = {
+        'ok': round(sum(pct_ok)/len(pct_ok),1) if pct_ok else 0,
+        'ko': round(sum(pct_ko)/len(pct_ko),1) if pct_ko else 0,
+        'av': round(sum(pct_av)/len(pct_av),1) if pct_av else 0,
+        'ec': round(sum(pct_ec)/len(pct_ec),1) if pct_ec else 0,
+    }
+
+    return render(request, 'checklist/dashboard.html', {
+        'dates':   json.dumps(dates),
+        'ok':      json.dumps(pct_ok),
+        'ko':      json.dumps(pct_ko),
+        'av':      json.dumps(pct_av),
+        'ec':      json.dumps(pct_ec),
+        'avg_pct': avg,
+        'start':   start,
+        'end':     end,
+    })
