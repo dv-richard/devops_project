@@ -29,10 +29,10 @@ Développement d'une application web en Django permettant aux administrateurs sy
 ```bash
 cd checkup_django/
 ```
-
+[README checkup_django](checkup_django/README.md)
 ---
 
-## ✅ Projet 2 – `azure_payment_monitoring`
+## ✅ Projet 2 – `azure_monitoring_deployment`
 
 ### 🎯 Objectif
 
@@ -64,9 +64,9 @@ Développement et déploiement d’une **API sécurisée de gestion de paiements
 
 ### 📂 Dossier
 ```bash
-cd payments_api/
+cd azure_monitoring_deployment/
 ```
-
+[README azure_monitoring_deployment](azure_monitoring_deployment/README.md)
 ### 🧪 Tests & Observabilité
 
 - Tests manuels via **curl** pour injecter du trafic
