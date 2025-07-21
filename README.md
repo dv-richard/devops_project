@@ -30,6 +30,7 @@ Développement d'une application web en Django permettant aux administrateurs sy
 cd checkup_django/
 ```
 [README checkup_django](checkup_django/README.md)
+
 ---
 
 ## ✅ Projet 2 – `azure_monitoring_deployment`
