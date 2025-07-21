@@ -77,7 +77,7 @@ cd payments_api/
 - Échecs de paiements > 5/5min
 
 ### 🤝 Auteur
-Ingénieur DevOps
-Nom : Richard Deva
-Année : 2024 - 2025
-LinkedIn : Richard DEVA
+Ingénieur DevOps  
+Nom : Richard Deva 
+Année : 2024 - 2025 
+LinkedIn : Richard DEVA 
