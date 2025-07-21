@@ -78,6 +78,6 @@ cd payments_api/
 
 ### 🤝 Auteur
 Ingénieur DevOps  
-Nom : Richard Deva 
-Année : 2024 - 2025 
+Nom : Richard Deva  
+Année : 2024 - 2025  
 LinkedIn : Richard DEVA 
