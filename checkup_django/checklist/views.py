@@ -2,151 +2,18 @@ import os
 import json
 import requests
 from urllib.parse import urlencode
-
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.authtoken.models import Token
-
 from .models import Section, TaskTemplate, Checklist, CheckItem, is_external_user
 from .forms import CheckItemFormSet
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 1) DÉCLENCHEMENT DU FLUX OIDC
-# ──────────────────────────────────────────────────────────────────────────────
-
-def oidc_login(request):
-    state = request.session.setdefault('oidc_state', os.urandom(16).hex())
-    params = {
-        'response_type': 'code',
-        'client_id':     settings.OIDC_RP_CLIENT_ID,
-        'redirect_uri':  settings.OIDC_REDIRECT_URI,
-        'scope':         'openid profile email',
-        'state':         state,
-    }
-    url = settings.OIDC_AUTH_ENDPOINT + '?' + urlencode(params)
-    print('OIDC Login URL:', url)
-    return redirect(url)
-
-
-def oidc_callback(request):
-    code  = request.GET.get('code')
-    state = request.GET.get('state')
-    if not code or state != request.session.get('oidc_state'):
-        return redirect('checklist_today')
-
-    token_data = {
-        'grant_type':    'authorization_code',
-        'code':          code,
-        'redirect_uri':  settings.OIDC_REDIRECT_URI,
-        'client_id':     settings.OIDC_RP_CLIENT_ID,
-        'client_secret': settings.OIDC_RP_CLIENT_SECRET,
-    }
-    token_resp = requests.post(
-        settings.OIDC_TOKEN_ENDPOINT,
-        data=token_data,
-        verify=settings.OIDC_OP_SSL
-    )
-    token_resp.raise_for_status()
-    tokens = token_resp.json()
-    access_token = tokens.get('access_token')
-
-    # Création/récupération user + token DRF
-    api_resp = requests.post(
-        request.build_absolute_uri('/api/auth/oidc/'),
-        json={'token': access_token}
-    )
-    api_resp.raise_for_status()
-    payload = api_resp.json()
-    key = payload.get('key')
-
-    token_obj = Token.objects.filter(key=key).first()
-    if token_obj:
-        login(request, token_obj.user)
-
-    return redirect('checklist_today')
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# 2) OIDCAuthView (pour apps JS / mobile)
-# ──────────────────────────────────────────────────────────────────────────────
-
-class OIDCAuthView(APIView):
-    permission_classes = []
-
-    def post(self, request, *args, **kwargs):
-        token = request.data.get('token')
-        if not token:
-            return Response({'error': 'Token manquant'}, status=status.HTTP_400_BAD_REQUEST)
-
-        user_info = self.get_user_info(token)
-        if not user_info:
-            return Response({'error': 'Token invalide'}, status=status.HTTP_400_BAD_REQUEST)
-
-        user = self.get_or_create_user(user_info)
-        if not user:
-            return Response({'error': "Création utilisateur échouée"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        token_obj, _ = Token.objects.get_or_create(user=user)
-        return Response({
-            'key':          token_obj.key,
-            'id':           user.id,
-            'is_admin':     user.is_staff,
-            'username':     user.username,
-            'first_name':   user.first_name,
-            'last_name':    user.last_name,
-            'email':        user.email or None,
-            'is_external':  is_external_user(user),
-        }, status=status.HTTP_200_OK)
-
-    def get_user_info(self, token):
-        try:
-            resp = requests.get(
-                settings.OIDC_USERINFO_ENDPOINT,
-                headers={'Authorization': f'Bearer {token}'},
-                verify=settings.OIDC_OP_SSL
-            )
-            resp.raise_for_status()
-            return resp.json()
-        except requests.RequestException:
-            return None
-
-    def get_or_create_user(self, user_info):
-        User = get_user_model()
-        username   = user_info.get('preferred_username', '').lower()
-        email      = user_info.get('email', '')
-        first_name = user_info.get('given_name', '')
-        last_name  = user_info.get('family_name', '')
-
-        if not username:
-            return None
-
-        user = User.objects.filter(username__iexact=username).first()
-        if user:
-            user.first_name = first_name
-            user.last_name  = last_name
-            user.email      = email
-            user.save()
-        else:
-            user = User.objects.create_user(
-                username=username,
-                email=email,
-                first_name=first_name,
-                last_name=last_name
-            )
-        return user
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# 3) Checklist du jour
+#  Checklist du jour
 # ──────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -222,7 +89,7 @@ def checklist_today(request):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 4) Historique & filtrage
+# Historique & filtrage
 # ──────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -250,7 +117,7 @@ def historique_checklists(request):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 5) Détail + navigation Prev/Next
+# Détail + navigation Prev/Next
 # ──────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -267,7 +134,7 @@ def checklist_detail(request, date):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 6) Dashboard statistique interactif
+# Dashboard statistique interactif
 # ──────────────────────────────────────────────────────────────────────────────
 
 @login_required
