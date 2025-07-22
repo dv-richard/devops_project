@@ -1,0 +1,23 @@
+# This file is part of the Checkup project.
+{% extends "checklist/base.html" %}
+{% block title %}Connexion{% endblock %}
+{% block content %}
+<div class="mt-5" style="max-width: 400px; margin: 0 auto;">
+  <h2 class="mb-4 text-center">🔐 Connexion</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.errors %}
+      <div class="alert alert-danger">Identifiants invalides</div>
+    {% endif %}
+    <div class="mb-3">
+      <label for="id_username" class="form-label">Nom d'utilisateur</label>
+      <input type="text" name="username" class="form-control" id="id_username" required>
+    </div>
+    <div class="mb-3">
+      <label for="id_password" class="form-label">Mot de passe</label>
+      <input type="password" name="password" class="form-control" id="id_password" required>
+    </div>
+    <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+  </form>
+</div>
+{% endblock %}
