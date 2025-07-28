@@ -1,0 +1,35 @@
+stages:
+  - test
+  - build
+  - deploy
+
+test:
+  stage: test
+  image: python:3.10
+  tags:
+    - auto
+  script:
+    - pip install -r requirements.txt
+    - python3 -m pytest
+  only:
+    - main
+
+build:
+  stage: build
+  tags:
+    - auto
+  script:
+    - docker build -t rda-devops-app .
+  only:
+    - main
+
+deploy:
+  stage: deploy
+  tags:
+    - auto
+  script:
+    - docker stop rda-devops-app || true
+    - docker rm rda-devops-app || true
+    - docker run -d --name rda-devops-app -p 5000:5000 rda-devops-app
+  only:
+    - main
