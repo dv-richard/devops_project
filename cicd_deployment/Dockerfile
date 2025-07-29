@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Étape 4 : point d'entrée (à adapter selon ton app)
-CMD ["python", "main.py"]
+CMD CMD ["uvicorn", "hexencoder:app", "--host", "0.0.0.0", "--port", "5000"]

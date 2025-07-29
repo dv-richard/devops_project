@@ -3,6 +3,7 @@ stages:
   - build
   - deploy
 
+# CI pour les tests
 test:
   stage: test
   image: python:3.10
@@ -11,9 +12,13 @@ test:
   script:
     - pip install -r requirements.txt
     - python3 -m pytest
-  only:
-    - main
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
 
+# Build Docker
 build:
   stage: build
   tags:
@@ -23,6 +28,7 @@ build:
   only:
     - main
 
+# Déploiement Docker
 deploy:
   stage: deploy
   tags:

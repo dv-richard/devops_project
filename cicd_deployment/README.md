@@ -14,7 +14,7 @@ Le tout basé sur une application Python containerisée, avec des tests unitaire
 | 🧰 Plateforme CI/CD       | GitLab CE auto-hébergé sur Azure                                      |
 | 🖥️ Infrastructure         | 2 VMs Azure déployées via Terraform (1 GitLab + 1 GitLab Runner)      |
 | ⚙️ Provisionning          | Ansible (Docker, GitLab Runner, NGINX, Certbot...)                    |
-| 📦 Déploiement            | Docker / Shell                                                         |
+| 📦 Déploiement            | Docker / Shell / FastAPI (Uvicorn)                                                       |
 | 🔍 Supervision (optionnel)| Docker logs (local)                                                    |
 
 ---
@@ -31,7 +31,71 @@ Le tout basé sur une application Python containerisée, avec des tests unitaire
    └──> VM Azure exposée via HTTPS (Nginx + Certbot)
 ```
 
-![Schéma Architecture](images/schéma%20d'architecture.png)
+---
+
+## 📂 Fichiers clés
+
+- [`hexencoder.py`](hexencoder.py) : code principal FastAPI
+- [`test_hexencoder.py`](test_hexencoder.py) : tests unitaires Pytest
+- [`Dockerfile`](Dockerfile) : création de l’image
+- [`requirements.txt`](requirements.txt) : dépendances
+- [`.gitlab-ci.yml`](.gitlab-ci.yml) : pipeline GitLab CI/CD
+
+---
+
+## 🧪 Phase de test en local
+
+1. Créer et activer un environnement virtuel
+```bash 
+python3 -m venv .venv
+source .venv/bin/activate
+```
+2. Installer les dépendances 
+```bash 
+pip install -r requirements.txt
+```
+Si tu n’as pas encore de requirements.txt, tu peux le créer avec ce contenu :
+```
+pytest
+flask
+fastapi
+uvicorn
+```
+3. Lancer les tests unitaires avec `pytest`
+```bash 
+pytest
+```
+
+Tu dois voir une sortie comme :
+```
+==================== test session starts ====================
+collected 2 items
+
+test_hexencoder.py ..                                      [100%]
+
+===================== 2 passed in 0.05s =====================
+```
+![Uvicorn Host](images/pytest_and_uvicorn_host.png)
+
+4. Lancer le serveur en local (FastAPI)
+```bash 
+uvicorn hexencoder:app --host 0.0.0.0 --port 8000
+```
+
+Puis aller sur : 
+- Swagger UI → http://127.0.0.1:8000/docs
+- Test via `curl` :
+```bash 
+curl http://127.0.0.1:8000/encode/Héllo
+→ "48c3a96c6c6f"
+
+curl http://127.0.0.1:8000/decode/48c3a96c6c6f
+→ "Héllo"
+```
+
+![Fast API Access](images/fat_api_access.png)
+![Encode Hello Local](images/encode_hello.png)
+![Hello Local](images/hello.png)
 
 ---
 
@@ -81,10 +145,11 @@ Les tests sont déclenchés automatiquement via `pytest`.
 Extrait du test :
 
 ```python
-from main import convert_to_hex
-
-def test_convert_to_hex():
-    assert convert_to_hex(255) == "0xff"
+from hexencoder import hex_encode_text, hex_decode_text
+def test_encode():
+     assert hex_encode_text('Héllo') == '48c3a96c6c6f'
+def test_decode():
+     assert hex_decode_text('48c3a96c6c6f') == "Héllo"
 ```
 
 ![Tests unitaires](images/curl.png)
@@ -96,6 +161,7 @@ def test_convert_to_hex():
 Une branche `test-fail` a été créée avec un test volontairement erroné.  
 Le pipeline échoue correctement et empêche le merge (du point de vue des développeurs sans rôle admin).
 
+![MR ALLOWED](images/mr_allowed.png)
 ![Pipeline FAIL](images/merge%20request%20failed%201.png)
 
 ---
@@ -104,11 +170,15 @@ Le pipeline échoue correctement et empêche le merge (du point de vue des déve
 
 Une fois l’image Docker construite, elle est automatiquement lancée sur la VM Runner.
 
-> Accès public : `http://<rda-runner-vm>:5000/hex?value=255`  
-Retour :
-```json
-{"hex": "0xff", "value": 255}
-```
+> Accès public : `http://<rda-runner-vm>:5000/docs`  
+ Exemple d’appel API :
+ ```bash
+ curl http://<runner-vm>:5000/encode/Héllo
+ → "48c3a96c6c6f"
+
+ curl http://<runner-vm>:5000/decode/48c3a96c6c6f
+ → "Héllo"
+ ```
 ![Application Dockeurisé](images/Docker%20ps%20&%20curl.png)
 
 ---
