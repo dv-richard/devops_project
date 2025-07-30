@@ -163,6 +163,7 @@ Le pipeline échoue correctement et empêche le merge (du point de vue des déve
 
 ![MR ALLOWED](images/mr_allowed.png)
 ![Pipeline FAIL](images/merge%20request%20failed%201.png)
+![All pipelines](images/all_pipelines_failed.png)
 
 ---
 
