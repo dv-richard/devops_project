@@ -5,6 +5,7 @@ from django.conf import settings
 from django.views.generic import RedirectView
 from django.contrib.auth import views as auth_views
 from checklist import views
+from django_prometheus import exports
 
 urlpatterns = [
     path('', RedirectView.as_view(pattern_name='checklist_today', permanent=False), name='home'),
@@ -14,6 +15,9 @@ urlpatterns = [
     path('accounts/login/',  auth_views.LoginView.as_view(template_name='checklist/login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
 
+    # Métriques Prometheus & Grafana
+    path("metrics/", exports.ExportToDjangoView, name="prometheus-django-metrics"),
+    
     # Vues principales
     path('checklist/',             views.checklist_today,       name='checklist_today'),
     path('checklist/historique/', views.historique_checklists, name='historique_checklists'),
